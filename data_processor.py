@@ -6,7 +6,7 @@ from db_config import DB_CONFIG, get_sqlalchemy_url
 
 CONFIG = {
     "TEMP_MIN": 18.0,
-    "TEMP_MAX": 28.0,
+    "TEMP_MAX": 24.0,
     "OUT_OF_RANGE_THRESHOLD_MINUTES": 3,
     "DEFAULT_STATION_KEY": None,
 }
