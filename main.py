@@ -20,7 +20,8 @@ _hourly = None
 _out_of_range = None
 _cover_aligned = None
 _station_count = 0
-_temp_cleaned = None  # kept so we can pass raw events to template
+_current_station = None
+_temp_cleaned = None  
 
 try:
     _raw = load_data()
@@ -30,11 +31,9 @@ try:
     _out_of_range = detect_out_of_range(_temp_cleaned, CONFIG)
     _cover_events = process_cover_events(_cover, _temp_cleaned)
     _cover_aligned = align_cover_with_temperature(_cover_events, _hourly)
-    _station_count = (
-        _temp_cleaned["Station Key"].nunique()
-        if _temp_cleaned is not None and len(_temp_cleaned) > 0
-        else 0
-    )
+    if _temp_cleaned is not None and len(_temp_cleaned) > 0:
+        _station_count = _temp_cleaned["Station Key"].nunique()
+        _current_station = str(_temp_cleaned["Station Key"].mode().iloc[0])
     print(
         f"[INFO] Data loaded: {len(_hourly)} hourly points, "
         f"{count_out_of_range(_out_of_range)} out-of-range events, "
@@ -45,10 +44,6 @@ except Exception as e:
     print(f"[ERROR] {_load_error}")
 
 
-# ---------------------------------------------------------------------------
-# Route: main dashboard
-# ---------------------------------------------------------------------------
-
 @app.route("/")
 def index():
     if _load_error:
@@ -57,6 +52,7 @@ def index():
             chart_html="",
             out_of_range_count=0,
             station_count=0,
+            current_station=None,
             error_message=_load_error,
             out_of_range_events=[],
         )
@@ -64,7 +60,6 @@ def index():
     fig = build_chart(_hourly, _out_of_range, _cover_aligned, CONFIG)
     chart_html = render_chart_html(fig)
 
-    # Build table rows for the out-of-range detail panel
     table_events = _build_table_events(_out_of_range, _temp_cleaned, CONFIG)
 
     return render_template(
@@ -72,14 +67,11 @@ def index():
         chart_html=chart_html,
         out_of_range_count=count_out_of_range(_out_of_range),
         station_count=_station_count,
+        current_station=_current_station,
         error_message=None,
         out_of_range_events=table_events,
     )
 
-
-# ---------------------------------------------------------------------------
-# Route: export out-of-range events to Excel
-# ---------------------------------------------------------------------------
 
 @app.route("/export-excel")
 def export_excel():
@@ -90,7 +82,6 @@ def export_excel():
     table_events = _build_table_events(_out_of_range, _temp_cleaned, CONFIG)
 
     if not table_events:
-        # Return empty file with headers only
         df = pd.DataFrame(columns=[
             "Station", "Start Time", "End Time",
             "Duration (min)", "Direction",
@@ -122,10 +113,6 @@ def export_excel():
     return response
 
 
-# ---------------------------------------------------------------------------
-# Chart builder  (Person 2 responsibility)
-# ---------------------------------------------------------------------------
-
 def build_chart(
     hourly_df,
     out_of_range_events: list[dict],
@@ -144,13 +131,10 @@ def build_chart(
 
     fig = go.Figure()
 
-    # ------------------------------------------------------------------
-    # 1. Valid-range band  (neutral grey, not green)
-    # ------------------------------------------------------------------
     fig.add_hrect(
         y0=config["TEMP_MIN"],
         y1=config["TEMP_MAX"],
-        fillcolor="rgba(180, 180, 180, 0.10)",   # subtle neutral grey
+        fillcolor="rgba(180, 180, 180, 0.10)",   
         line_width=0,
         annotation_text=f"Valid range: {config['TEMP_MIN']}–{config['TEMP_MAX']}°C",
         annotation_position="top left",
@@ -158,9 +142,6 @@ def build_chart(
         annotation_font_color="#888888",
     )
 
-    # ------------------------------------------------------------------
-    # 2. Temperature line
-    # ------------------------------------------------------------------
     if hourly_df is not None and len(hourly_df) > 0:
         fig.add_trace(
             go.Scatter(
@@ -173,9 +154,6 @@ def build_chart(
             )
         )
 
-    # ------------------------------------------------------------------
-    # 3. Limit lines
-    # ------------------------------------------------------------------
     fig.add_hline(
         y=config["TEMP_MAX"],
         line_dash="dash",
@@ -193,9 +171,6 @@ def build_chart(
         annotation_font_color="blue",
     )
 
-    # ------------------------------------------------------------------
-    # 4. Cover-open regions  (orange vrects)
-    # ------------------------------------------------------------------
     if cover_events:
         for event in cover_events:
             close = (
@@ -210,16 +185,10 @@ def build_chart(
                 line_width=0,
             )
 
-    # ------------------------------------------------------------------
-    # 5. Out-of-range star markers
-    #    – only shown where temperature is actually out of range
-    #    – hover shows: station, duration, avg temp
-    # ------------------------------------------------------------------
     if out_of_range_events:
         star_x, star_y, star_text, star_hover = [], [], [], []
 
         for e in out_of_range_events:
-            # Find the actual temperature value at the event's hour
             y_val = e["avg_temperature"]
             if hourly_df is not None and len(hourly_df) > 0:
                 mask = hourly_df["Timestamp"] == e["hour"]
@@ -235,12 +204,10 @@ def build_chart(
             star_x.append(e["hour"])
             star_y.append(y_val)
 
-            # Short annotation beside the star
             star_text.append(
                 f"{direction_label} {limit_val}°C | {duration} min"
             )
 
-            # Rich hover tooltip
             star_hover.append(
                 f"<b>⚠ Out of Range</b><br>"
                 f"Station: {station}<br>"
@@ -262,9 +229,6 @@ def build_chart(
             )
         )
 
-    # ------------------------------------------------------------------
-    # Layout
-    # ------------------------------------------------------------------
     fig.update_layout(
         title="SPM Temperature Timeline",
         xaxis=dict(
@@ -298,9 +262,6 @@ def render_chart_html(fig: go.Figure) -> str:
     return fig.to_html(full_html=False, include_plotlyjs="cdn")
 
 
-# ---------------------------------------------------------------------------
-# Helper: build table rows for the out-of-range detail panel
-# ---------------------------------------------------------------------------
 
 def _build_table_events(
     out_of_range_events: list[dict] | None,
@@ -323,7 +284,6 @@ def _build_table_events(
         limit = config["TEMP_MAX"] if direction == "above" else config["TEMP_MIN"]
         direction_label = f"Above {limit}°C" if direction == "above" else f"Below {limit}°C"
 
-        # Try to resolve station key from the raw temperature dataframe
         station = e.get("station_key", "N/A")
         if station == "N/A" and temp_df is not None and not temp_df.empty:
             mask = (
@@ -346,8 +306,6 @@ def _build_table_events(
 
     return rows
 
-
-# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

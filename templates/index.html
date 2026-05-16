@@ -5,223 +5,352 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SPM Thermal Timeline</title>
     <style>
-        /* ---------------------------------------------------------------
-           Base layout – Persoana 3 (Web Dev) can restyle freely.
-           Keeping only structural + functional CSS here.
-        --------------------------------------------------------------- */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Segoe UI', sans-serif;
-            background: #f5f6fa;
+            background: #f0f2f5;
             color: #222;
             min-height: 100vh;
+            padding: 28px 16px 48px;
         }
 
-        /* Header bar */
-        header {
-            background: #1a1f36;
-            color: #fff;
-            padding: 14px 28px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-        }
-        header h1 { font-size: 1.2rem; font-weight: 600; letter-spacing: .5px; }
-
-        /* KPI pill */
-        .kpi-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 16px;
-            border-radius: 999px;
-            font-size: .85rem;
-            font-weight: 600;
-        }
-        .kpi-badge.ok   { background: #d4edda; color: #155724; }
-        .kpi-badge.warn { background: #fff3cd; color: #856404; }
-        .kpi-badge.bad  { background: #f8d7da; color: #721c24; }
-
-        /* Main content */
-        main {
-            max-width: 1400px;
+        .page {
+            max-width: 1100px;
             margin: 0 auto;
-            padding: 24px 20px;
             display: flex;
             flex-direction: column;
-            gap: 28px;
+            gap: 20px;
         }
 
-        /* Error banner */
-        .error-banner {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-            padding: 12px 20px;
-            border-radius: 6px;
-        }
-
-        /* Chart card */
         .card {
             background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,.08);
-            padding: 20px;
-        }
-        .card h2 {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 14px;
-            color: #333;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+            padding: 24px;
         }
 
-        /* Legend row (below chart) */
+        .header-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+            padding: 24px 28px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .header-icon {
+            font-size: 2rem;
+            line-height: 1;
+        }
+        .header-text h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #1a1f36;
+            letter-spacing: 0.3px;
+        }
+        .header-text p {
+            font-size: 0.85rem;
+            color: #7a8499;
+            margin-top: 3px;
+        }
+
+        .error-banner {
+            background: #fdecea;
+            border: 1px solid #f5c6c6;
+            color: #8b1a1a;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+        .error-banner strong { margin-right: 6px; }
+
+        .top-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .top-row .card {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .kpi-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #9aa0b0;
+            margin-bottom: 8px;
+        }
+        .kpi-value {
+            font-size: 2.4rem;
+            font-weight: 700;
+            line-height: 1;
+            color: #1a1f36;
+        }
+        .kpi-value.ok    { color: #1e7e34; }
+        .kpi-value.warn  { color: #c07000; }
+        .kpi-value.bad   { color: #b52020; }
+
+        .kpi-sublabel {
+            font-size: 0.8rem;
+            color: #9aa0b0;
+            margin-top: 6px;
+        }
+
+        .view-details-btn {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 7px 18px;
+            background: #1a1f36;
+            color: #fff;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .view-details-btn:hover { background: #2c3461; }
+
+        .station-name {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #1a1f36;
+            margin-top: 8px;
+        }
+        .station-badge {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 4px 12px;
+            background: #e8f0fe;
+            color: #1a56a0;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .chart-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+            padding: 24px;
+        }
+        .chart-card h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a1f36;
+            margin-bottom: 16px;
+        }
+
+        .legend-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+            padding: 18px 24px;
+        }
+        .legend-card h3 {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #9aa0b0;
+            margin-bottom: 12px;
+        }
         .legend {
             display: flex;
             flex-wrap: wrap;
             gap: 18px;
-            margin-top: 10px;
-            font-size: .82rem;
+            font-size: 0.82rem;
             color: #555;
         }
-        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
         .legend-dot {
-            width: 12px; height: 12px;
+            width: 13px;
+            height: 13px;
             border-radius: 50%;
             flex-shrink: 0;
         }
+        .legend-rect {
+            width: 18px;
+            height: 13px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
 
-        /* Out-of-range table section */
+        .card h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a1f36;
+            margin-bottom: 14px;
+        }
         .table-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
+        .table-header h2 { margin-bottom: 0; }
+
         .export-btn {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             padding: 7px 16px;
-            background: #217346;   /* Excel green */
+            background: #217346;
             color: #fff;
             border: none;
-            border-radius: 5px;
-            font-size: .84rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
+            transition: background 0.15s;
         }
         .export-btn:hover { background: #185c37; }
 
-        /* Responsive table */
         .table-wrap { overflow-x: auto; }
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: .85rem;
+            font-size: 0.84rem;
         }
         th {
-            background: #f0f2f5;
+            background: #f5f6fa;
             text-align: left;
             padding: 9px 12px;
             font-weight: 600;
-            border-bottom: 2px solid #dde1ea;
+            color: #555;
+            border-bottom: 2px solid #e4e6ed;
             white-space: nowrap;
         }
         td {
-            padding: 8px 12px;
+            padding: 9px 12px;
             border-bottom: 1px solid #eaecf0;
             vertical-align: middle;
         }
-        tr:hover td { background: #f7f8fb; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f9fafc; }
 
-        /* Direction badges in table */
-        .badge-above { color: #c0392b; font-weight: 600; }
-        .badge-below { color: #2471a3; font-weight: 600; }
+        .badge-above { color: #b52020; font-weight: 600; }
+        .badge-below { color: #1a56a0; font-weight: 600; }
 
-        /* Empty state */
         .empty-state {
             text-align: center;
-            padding: 32px;
-            color: #888;
-            font-size: .9rem;
+            padding: 36px;
+            color: #9aa0b0;
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
 
-<!-- ============================================================
-     HEADER
-============================================================ -->
-<header>
-    <h1>🌡 SPM Thermal Timeline</h1>
+<div class="page">
 
-    {% if error_message %}
-        <span class="kpi-badge bad">⚠ Data Error</span>
-    {% elif out_of_range_count == 0 %}
-        <span class="kpi-badge ok">✔ {{ out_of_range_count }} out-of-range events</span>
-    {% elif out_of_range_count <= 5 %}
-        <span class="kpi-badge warn">⚠ {{ out_of_range_count }} out-of-range events</span>
-    {% else %}
-        <span class="kpi-badge bad">✖ {{ out_of_range_count }} out-of-range events</span>
-    {% endif %}
+    <div class="header-card">
+        <div class="header-icon">🌡️</div>
+        <div class="header-text">
+            <h1>SPM Thermal Timeline</h1>
+            <p>Temperature monitoring dashboard - Real-time out-of-range detection</p>
+        </div>
+    </div>
 
-    {% if station_count > 0 %}
-        <span style="font-size:.82rem; color:#aaa;">{{ station_count }} station(s) monitored</span>
-    {% endif %}
-</header>
-
-<!-- ============================================================
-     MAIN
-============================================================ -->
-<main>
-
-    <!-- Error banner -->
     {% if error_message %}
     <div class="error-banner">
-        <strong>Error loading data:</strong> {{ error_message }}
+        <strong>⚠️Error loading data:</strong> {{ error_message }}
     </div>
     {% endif %}
 
-    <!-- Chart card -->
-    {% if chart_html %}
-    <div class="card">
-        <h2>Temperature Evolution</h2>
-        {{ chart_html | safe }}
+    <div class="top-row">
 
-        <!-- Legend -->
+        <div class="card">
+            <div class="kpi-label">Out-of-range events</div>
+            {% if error_message %}
+                <div class="kpi-value bad">-</div>
+                <div class="kpi-sublabel">Data unavailable</div>
+            {% elif out_of_range_count == 0 %}
+                <div class="kpi-value ok">{{ out_of_range_count }}</div>
+                <div class="kpi-sublabel">All temperatures within safe range</div>
+            {% elif out_of_range_count <= 10 %}
+                <div class="kpi-value warn">{{ out_of_range_count }}</div>
+                <div class="kpi-sublabel">Some events detected - review below</div>
+            {% else %}
+                <div class="kpi-value bad">{{ out_of_range_count }}</div>
+                <div class="kpi-sublabel">Multiple events detected - attention required</div>
+            {% endif %}
+            {% if out_of_range_events %}
+                <a class="view-details-btn" href="#details">View details 🡓</a>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <div class="kpi-label">Station</div>
+            {% if current_station %}
+                <div class="station-name">{{ current_station }}</div>
+                <span class="station-badge">Active</span>
+                {% if station_count > 1 %}
+                    <div class="kpi-sublabel" style="margin-top:10px;">{{ station_count }} stations in dataset - showing primary</div>
+                {% endif %}
+            {% elif station_count > 0 %}
+                <div class="station-name">{{ station_count }} station(s)</div>
+                <span class="station-badge">Active</span>
+            {% else %}
+                <div class="station-name" style="color:#9aa0b0;">No data</div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    {% if chart_html %}
+    <div class="chart-card">
+        <h2>Temperature over time</h2>
+        {{ chart_html | safe }}
+    </div>
+    {% endif %} 
+
+    {% if chart_html %}
+    <div class="legend-card">
+        <h3>Chart legend</h3>
         <div class="legend">
             <div class="legend-item">
                 <div class="legend-dot" style="background:#2196F3;"></div>
-                Temperature (hourly avg)
+                Temperature line (hourly average)
             </div>
             <div class="legend-item">
-                <div class="legend-dot" style="background:red; clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);"></div>
-                ⭐ Out-of-range event
+                <div class="legend-rect" style="background:rgba(180,180,180,0.35);"></div>
+                Safe temperature range ({{ "18" }}-{{ "24" }}°C)
             </div>
             <div class="legend-item">
-                <div class="legend-dot" style="background:rgba(255,165,0,0.4); border-radius:2px;"></div>
+                <div class="legend-rect" style="background:rgba(255,165,0,0.35);"></div>
                 Cover open period
             </div>
             <div class="legend-item">
-                <div class="legend-dot" style="background:rgba(180,180,180,0.4); border-radius:2px;"></div>
-                Valid range band
+                <div class="legend-dot" style="background:red; clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);"></div>
+                Out-of-range event marker
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background:red; width:24px; height:2px; border-radius:1px;"></div>
+                Upper limit line
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background:#2196F3; width:24px; height:2px; border-radius:1px;"></div>
+                Lower limit line
             </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- Out-of-range detail table -->
-    <div class="card">
+    <div class="card" id="details">
         <div class="table-header">
-            <h2>⚠ Out-of-Range Events Detail</h2>
+            <h2>⚠️ Out-of-Range Events - Details</h2>
             {% if out_of_range_events %}
-            <a class="export-btn" href="/export-excel">
-                ⬇ Export to Excel
-            </a>
+            <a class="export-btn" href="/export-excel">🡓 Export to Excel</a>
             {% endif %}
         </div>
 
@@ -269,7 +398,7 @@
         {% endif %}
     </div>
 
-</main>
+</div>
 
 </body>
 </html>
