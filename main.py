@@ -75,7 +75,6 @@ def index():
 
 @app.route("/export-excel")
 def export_excel():
-    """Download the out-of-range events table as an Excel file."""
     import io
     import pandas as pd
 
@@ -119,24 +118,14 @@ def build_chart(
     cover_events: list[dict],
     config: dict,
 ) -> go.Figure:
-    """Build the Plotly interactive temperature timeline chart.
-
-    Layers (in order):
-      1. Valid-range band        – subtle grey/white fill (was green, now neutral)
-      2. Temperature line        – blue
-      3. Upper & lower limit lines
-      4. Cover-open regions      – orange semi-transparent vrects
-      5. Out-of-range star markers with station + duration annotation
-    """
-
     fig = go.Figure()
 
     fig.add_hrect(
         y0=config["TEMP_MIN"],
         y1=config["TEMP_MAX"],
-        fillcolor="rgba(180, 180, 180, 0.10)",   
+        fillcolor="rgba(180, 180, 180, 0.10)",
         line_width=0,
-        annotation_text=f"Valid range: {config['TEMP_MIN']}–{config['TEMP_MAX']}°C",
+        annotation_text=f"Valid range: {config['TEMP_MIN']}\u2013{config['TEMP_MAX']}\u00b0C",
         annotation_position="top left",
         annotation_font_size=10,
         annotation_font_color="#888888",
@@ -150,7 +139,7 @@ def build_chart(
                 mode="lines",
                 name="Temperature (°C)",
                 line=dict(color="#2196F3", width=2),
-                hovertemplate="Time: %{x}<br>Temperature: %{y:.1f}°C<extra></extra>",
+                hovertemplate="Temperature: %{y:.1f}°C<extra></extra>",
             )
         )
 
@@ -186,7 +175,7 @@ def build_chart(
             )
 
     if out_of_range_events:
-        star_x, star_y, star_text, star_hover = [], [], [], []
+        star_x, star_y, star_hover = [], [], []
 
         for e in out_of_range_events:
             y_val = e["avg_temperature"]
@@ -204,17 +193,13 @@ def build_chart(
             star_x.append(e["hour"])
             star_y.append(y_val)
 
-            star_text.append(
-                f"{direction_label} {limit_val}°C | {duration} min"
-            )
-
+            # Time & Temperature already visible via unified hover — show only star-specific info
             star_hover.append(
-                f"<b>⚠ Out of Range</b><br>"
+                f"<b>\u26a0 Out of Range</b><br>"
                 f"Station: {station}<br>"
-                f"Direction: {direction_label} {limit_val}°C<br>"
+                f"Direction: {direction_label} {limit_val}\u00b0C<br>"
                 f"Duration: {duration} min<br>"
-                f"Avg temp: {e['avg_temperature']:.1f}°C<br>"
-                f"Extreme: {extreme}°C"
+                f"Extreme: {extreme}\u00b0C"
             )
 
         fig.add_trace(
@@ -262,19 +247,11 @@ def render_chart_html(fig: go.Figure) -> str:
     return fig.to_html(full_html=False, include_plotlyjs="cdn")
 
 
-
 def _build_table_events(
     out_of_range_events: list[dict] | None,
     temp_df,
     config: dict,
 ) -> list[dict]:
-    """Convert raw out-of-range event dicts into flat rows for the HTML table
-    and for the Excel export.
-
-    Each row contains:
-        station, start_time, end_time, duration_minutes,
-        direction, avg_temperature, extreme_value, limit
-    """
     if not out_of_range_events:
         return []
 
