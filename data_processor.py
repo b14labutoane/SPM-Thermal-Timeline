@@ -121,55 +121,6 @@ def clean_cover_data(df: pd.DataFrame, status_ref: pd.DataFrame) -> pd.DataFrame
     return df
 
 
-def validate_data(temp_df: pd.DataFrame, cover_df: pd.DataFrame) -> list[str]:
-    warnings: list[str] = []
-
-    if temp_df is None or (isinstance(temp_df, pd.DataFrame) and temp_df.empty):
-        warnings.append("Temperature data is empty or None")
-    if cover_df is None or (isinstance(cover_df, pd.DataFrame) and cover_df.empty):
-        warnings.append("Cover history data is empty or None")
-
-    required_temp = {"Temperature", "Timestamp", "Station Key"}
-    if isinstance(temp_df, pd.DataFrame) and not temp_df.empty:
-        for col in required_temp:
-            if col not in temp_df.columns:
-                warnings.append(f"Temperature data missing column: {col}")
-
-    required_cover = {"Cover status id", "Timestamp", "Station Key"}
-    if isinstance(cover_df, pd.DataFrame) and not cover_df.empty:
-        for col in required_cover:
-            if col not in cover_df.columns:
-                warnings.append(f"Cover history missing column: {col}")
-
-    if (
-        isinstance(temp_df, pd.DataFrame)
-        and not temp_df.empty
-        and isinstance(cover_df, pd.DataFrame)
-        and not cover_df.empty
-        and "Timestamp" in temp_df.columns
-        and "Timestamp" in cover_df.columns
-    ):
-        temp_min = temp_df["Timestamp"].min()
-        temp_max = temp_df["Timestamp"].max()
-        cover_min = cover_df["Timestamp"].min()
-        cover_max = cover_df["Timestamp"].max()
-        if temp_max < cover_min or cover_max < temp_min:
-            warnings.append(
-                f"No date range overlap — temp [{temp_min} to {temp_max}], "
-                f"cover [{cover_min} to {cover_max}]"
-            )
-
-    if (
-        isinstance(temp_df, pd.DataFrame)
-        and not temp_df.empty
-        and "Temperature" in temp_df.columns
-        and temp_df["Temperature"].isna().all()
-    ):
-        warnings.append("All temperature values are NaN")
-
-    return warnings
-
-
 def compute_hourly_averages(df: pd.DataFrame) -> pd.DataFrame:
     if len(df) < 60:
         return df.copy()
@@ -244,20 +195,6 @@ def detect_out_of_range(df: pd.DataFrame, config: dict) -> list[dict]:
 
 def count_out_of_range(events: list[dict]) -> int:
     return len(events)
-
-
-def format_out_of_range_annotation(event: dict) -> str:
-    direction = event["direction"]
-    duration = event["duration_minutes"]
-    extreme_label = event.get("extreme_label", "max" if direction == "above" else "min")
-    extreme_value = event.get("extreme_value", 0)
-
-    if direction == "above":
-        boundary = CONFIG.get("TEMP_MAX", 28.0)
-        return f"Above {boundary}°C for {duration} min (max: {extreme_value}°C)"
-    else:
-        boundary = CONFIG.get("TEMP_MIN", 18.0)
-        return f"Below {boundary}°C for {duration} min (min: {extreme_value}°C)"
 
 
 def process_cover_events(cover_df: pd.DataFrame, temp_df: pd.DataFrame) -> list[dict]:

@@ -272,17 +272,17 @@
         <div class="card">
             <div class="kpi-label">Out-of-range events</div>
             {% if error_message %}
-                <div class="kpi-value bad">-</div>
-                <div class="kpi-sublabel">Data unavailable</div>
+                <div id="kpi-oor-value" class="kpi-value bad">-</div>
+                <div id="kpi-oor-sublabel" class="kpi-sublabel">Data unavailable</div>
             {% elif out_of_range_count == 0 %}
-                <div class="kpi-value ok">{{ out_of_range_count }}</div>
-                <div class="kpi-sublabel">All temperatures within safe range</div>
+                <div id="kpi-oor-value" class="kpi-value ok">{{ out_of_range_count }}</div>
+                <div id="kpi-oor-sublabel" class="kpi-sublabel">No events in selected period</div>
             {% elif out_of_range_count <= 10 %}
-                <div class="kpi-value warn">{{ out_of_range_count }}</div>
-                <div class="kpi-sublabel">Some events detected - review below</div>
+                <div id="kpi-oor-value" class="kpi-value warn">{{ out_of_range_count }}</div>
+                <div id="kpi-oor-sublabel" class="kpi-sublabel">{{ out_of_range_count }} event(s) in selected period</div>
             {% else %}
-                <div class="kpi-value bad">{{ out_of_range_count }}</div>
-                <div class="kpi-sublabel">Multiple events detected - attention required</div>
+                <div id="kpi-oor-value" class="kpi-value bad">{{ out_of_range_count }}</div>
+                <div id="kpi-oor-sublabel" class="kpi-sublabel">{{ out_of_range_count }} events in selected period</div>
             {% endif %}
             {% if out_of_range_events %}
                 <a class="view-details-btn" href="#details">View details 🡓</a>
@@ -399,6 +399,75 @@
     </div>
 
 </div>
+
+<div id="event-data" data-hours='{{ event_hours | tojson }}' hidden></div>
+
+<script>
+(function () {
+    var dataEl = document.getElementById('event-data');
+    var eventHours = dataEl ? JSON.parse(dataEl.dataset.hours) : [];
+
+    function updateKPI(rangeStart, rangeEnd) {
+        var valueEl = document.getElementById('kpi-oor-value');
+        var subEl   = document.getElementById('kpi-oor-sublabel');
+        if (!valueEl || !subEl) return;
+
+        var count = 0;
+        for (var i = 0; i < eventHours.length; i++) {
+            var t = new Date(eventHours[i]);
+            if (rangeStart && t < rangeStart) continue;
+            if (rangeEnd   && t > rangeEnd)   continue;
+            count++;
+        }
+
+        valueEl.textContent = count;
+        valueEl.classList.remove('ok', 'warn', 'bad');
+
+        if (count === 0) {
+            valueEl.classList.add('ok');
+            subEl.textContent = 'No events in selected period';
+        } else if (count <= 10) {
+            valueEl.classList.add('warn');
+            subEl.textContent = count + ' event(s) in selected period';
+        } else {
+            valueEl.classList.add('bad');
+            subEl.textContent = count + ' events in selected period';
+        }
+    }
+
+    function syncKPIWithChart() {
+        var chartDiv = document.getElementById('thermal-chart');
+        if (!chartDiv) return;
+
+        // Read the current visible x-axis range directly from Plotly's
+        // computed layout — works for rangeselector buttons, rangeslider
+        // drag, zoom, pan, and "All" reset.
+        var layout = chartDiv._fullLayout || chartDiv.layout;
+        var xaxis  = layout && layout.xaxis;
+        var s = null, e = null;
+
+        if (xaxis && xaxis.range && xaxis.range.length >= 2) {
+            s = xaxis.range[0];
+            e = xaxis.range[1];
+        }
+
+        if (s && e) {
+            updateKPI(new Date(s), new Date(e));
+        } else {
+            updateKPI(null, null);
+        }
+    }
+
+    window.addEventListener('load', function () {
+        var chartDiv = document.getElementById('thermal-chart');
+        if (!chartDiv) return;
+        // plotly_relayout  → fires after rangeselector click / drag end
+        // plotly_relayouting → fires continuously during rangeslider drag
+        chartDiv.on('plotly_relayout', syncKPIWithChart);
+        chartDiv.on('plotly_relayouting', syncKPIWithChart);
+    });
+})();
+</script>
 
 </body>
 </html>
